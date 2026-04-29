@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import prisma from "./config/prisma";
 
 dotenv.config();
 
@@ -65,12 +66,21 @@ app.use("/api/video", videoRouter);
 app.use("/api/admin", adminRouter);
 
 // ── Health / Debug endpoint ───────────────────────────────────────────────
-app.get("/health", (_req, res) => {
+app.get("/health", async (_req, res) => {
   const stats = getCacheStats();
+  let dbStatus = "connected";
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (e) {
+    dbStatus = "error";
+    console.error("Health check DB error:", e);
+  }
+
   res.json({
     status: "ok",
     uptime: Math.floor(process.uptime()),
     redis: isRedisReady() ? "connected" : "unavailable",
+    database: dbStatus,
     cache: stats,
     memory: {
       heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
