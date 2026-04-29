@@ -25,6 +25,7 @@ export const CacheKeys = {
   CREATOR_PROJECT:  (projectId: string)         => `cache:creator:project:${projectId}`,
   VIDEO:            (videoId: string, uid?: string) => `cache:video:${videoId}:${uid || "public"}`,
   USER_ROLE:        (userId: string)            => `cache:user:role:${userId}`,
+  USER_ME:          (userId: string)            => `cache:user:me:full:${userId}`,
 };
 
 // ── TTL Presets (seconds) ─────────────────────────────────────────────────

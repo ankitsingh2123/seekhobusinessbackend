@@ -20,11 +20,14 @@ if (process.env.REDIS_URL) {
   try {
     const { Redis } = require("ioredis");
 
+    const isTLS = process.env.REDIS_URL.startsWith("rediss://");
+
     redisClient = new Redis(process.env.REDIS_URL, {
       // Connection
       connectTimeout: 4000,
       commandTimeout: 2000,      // Individual command max wait
       lazyConnect: false,         // Connect eagerly at startup
+      ...(isTLS ? { tls: { rejectUnauthorized: false } } : {}),
 
       // Retry strategy — exponential backoff, max 10s
       retryStrategy(times: number) {

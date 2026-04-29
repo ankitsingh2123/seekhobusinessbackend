@@ -3,7 +3,7 @@ import { authenticateUser } from "../middlewares/auth";
 import prisma from "../config/prisma";
 import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
-import { getCache, setCache, deleteCache } from "../utils/cache";
+import { getCache, setCache, deleteCache, CacheKeys } from "../utils/cache";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -16,18 +16,34 @@ const supabase = createClient(
 router.get("/me", authenticateUser, async (req, res) => {
   try {
     const user = req.user!;
-    const cacheKey = `cache:user:me:full:${user.id}`;
+    const cacheKey = CacheKeys.USER_ME(user.id);
     
     const cachedData = await getCache(cacheKey);
     if (cachedData) {
       return res.json(cachedData);
     }
     
-    const dbUser = await prisma.user.findUnique({
+    let dbUser = await prisma.user.findUnique({
       where: { id: user.id },
     });
 
-    if (!dbUser) return res.status(404).json({ error: "User not found" });
+    if (!dbUser) {
+      // Auto-sync from Supabase if missing from Prisma
+      const { data: authData } = await supabase.auth.admin.getUserById(user.id);
+      if (!authData?.user) {
+        return res.status(404).json({ error: "User not found in Auth system" });
+      }
+
+      dbUser = await prisma.user.create({
+        data: {
+          id: user.id,
+          email: authData.user.email || "",
+          name: authData.user.user_metadata?.full_name || "Student",
+          avatar: authData.user.user_metadata?.avatar_url || "",
+          role: "STUDENT",
+        },
+      });
+    }
 
     const responseData = {
       user: {
@@ -81,7 +97,7 @@ router.post("/upgrade", authenticateUser, async (req, res) => {
     });
 
     // Invalidate cache
-    await deleteCache(`cache:user:me:${user.id}`);
+    await deleteCache(CacheKeys.USER_ME(user.id));
 
     res.json({ success: true });
   } catch (error: any) {
@@ -138,7 +154,7 @@ router.put("/profile", authenticateUser, upload.single("file"), async (req, res)
     }
 
     // Invalidate cache
-    await deleteCache(`cache:user:me:${user.id}`);
+    await deleteCache(CacheKeys.USER_ME(user.id));
 
     res.json({ success: true, avatarUrl, name });
   } catch (error: any) {

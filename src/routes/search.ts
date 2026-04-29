@@ -19,7 +19,18 @@ router.get("/", async (req, res) => {
   const price    = (req.query.price as string)    || "all";
   const sort     = ((req.query.sort as string)    || "newest") as SortOption;
   const page     = Math.max(1, parseInt((req.query.page as string) || "1", 10));
-  const pageSize = 12;
+const pageSize = 12;
+
+const STATIC_CATEGORIES = [
+  "Sarkari Kaam", "Part Time Income", "Instagram", "Youtube", 
+  "English Speaking", "Astrology", "Finance", "Business", "Wellness", 
+  "Career & Jobs", "Share Market", "Editing", "Mobile Tricks", "Success", 
+  "Health", "Knowledge", "Crime", "Horror", "Devotion", "Food", 
+  "Self-Growth", "Agriculture", "Marketing", "Automobile", "Startups", 
+  "History", "AI", "Beauty", "Exam Prep", "Computer", "Coding", 
+  "Life Hacks", "Technology", "Fitness & Gym", "Motivation", 
+  "Photography", "Math", "Art & Craft", "Ramayan", "Cricket"
+];
 
   // Generate a unique cache key based on query params
   const cacheKey = CacheKeys.SEARCH(`${query}_${category}_${price}_${sort}_${page}`);
@@ -76,7 +87,7 @@ router.get("/", async (req, res) => {
       page,
       pageSize,
       totalPages:    Math.ceil(total / pageSize),
-      allCategories: allCategories.map((c: any) => c.category),
+      allCategories: Array.from(new Set([...allCategories.map((c: any) => c.category).filter(Boolean), ...STATIC_CATEGORIES])).sort(),
     };
 
     // Cache the response for 1 hour (3600 seconds)
