@@ -94,9 +94,13 @@ const STATIC_CATEGORIES = [
     await setCache(cacheKey, responseData, 3600);
 
     res.json(responseData);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Search error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ 
+      error: "Internal Server Error",
+      details: error.message || "No details available",
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 });
 
